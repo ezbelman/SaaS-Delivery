@@ -40,6 +40,7 @@ function computeAllocations(workItems: WorkItem[], weeks: Date[]): Record<string
 
   workItems.forEach((item) => {
     if (!item.assigneeId || !item.estimatedHours || !TEAM_IDS.includes(item.assigneeId)) return
+    const assigneeId = item.assigneeId  // narrowed to string; capture before inner forEach
     const itemStart  = new Date(item.startDate)
     const itemEnd    = new Date(item.endDate)
     const totalMs    = itemEnd.getTime() - itemStart.getTime()
@@ -52,7 +53,7 @@ function computeAllocations(workItems: WorkItem[], weeks: Date[]): Record<string
       if (overlapMs <= 0) return
       const weekHours   = hoursPerMs * overlapMs / (1000 * 60 * 60)
       const utilPct     = Math.round((weekHours / 40) * 100)
-      result[item.assigneeId][i] = (result[item.assigneeId][i] ?? 0) + utilPct
+      result[assigneeId][i] = (result[assigneeId][i] ?? 0) + utilPct
     })
   })
 

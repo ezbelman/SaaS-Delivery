@@ -184,6 +184,33 @@ function buildBreakdown(docType: DocumentType): string {
     .join(" · ")
 }
 
+// ─── Download / print helper ───────────────────────────────────────────────────
+// Opens the HTML in a new tab and immediately calls window.print() so the
+// browser shows the native Print / Save as PDF dialog. The user can choose
+// "Save as PDF" (Chrome/Edge) or "Print to PDF" (Firefox/Safari).
+function triggerDownload(html: string, _fileName: string) {
+  // Inject auto-print script so the dialog fires as soon as the page loads
+  const printable = html.replace(
+    "</body>",
+    `<script>window.onload = function(){ window.print(); }<\/script></body>`
+  )
+  const blob = new Blob([printable], { type: "text/html;charset=utf-8" })
+  const url  = URL.createObjectURL(blob)
+  const tab  = window.open(url, "_blank")
+  // Revoke the object URL after the new tab has loaded (3s is generous)
+  setTimeout(() => { URL.revokeObjectURL(url) }, 3000)
+  // Fallback: if the tab was blocked (pop-up blocker), fall back to direct download
+  if (!tab) {
+    const a    = document.createElement("a")
+    a.href     = url
+    a.download = _fileName
+    a.style.display = "none"
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url) }, 150)
+  }
+}
+
 function AnalysisOverlay({
   analysis,
   onClose,
@@ -507,15 +534,7 @@ export function DocumentGallery({ onSelect }: DocumentGalleryProps) {
     ].join("\n")
 
     const slug = doc.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement("a")
-    a.href     = url
-    a.download = `${slug}.html`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    triggerDownload(html, `${slug}.html`)
   }
 
   // ── Download all documents ─────────────────────────────────────────────────
@@ -622,15 +641,7 @@ export function DocumentGallery({ onSelect }: DocumentGalleryProps) {
       `</html>`,
     ].join("\n")
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement("a")
-    a.href     = url
-    a.download = `meridian-bank-documents-${format(new Date(), "yyyy-MM-dd")}.html`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    triggerDownload(html, `meridian-bank-documents-${format(new Date(), "yyyy-MM-dd")}.html`)
   }
 
   return (
@@ -753,10 +764,15 @@ export function DocumentGallery({ onSelect }: DocumentGalleryProps) {
               const Icon   = ICON_COMPONENTS[doc.type]
 
               return (
-                <button
+                // div instead of button — cards contain an interactive download button,
+                // and nested <button> inside <button> is invalid HTML (browsers silently break inner clicks)
+                <div
                   key={doc.id}
                   onClick={() => onSelect(doc.id)}
-                  className="group text-left bg-surface border border-[var(--line)] rounded-xl overflow-hidden hover:border-sdp-red/30 hover:shadow-lg hover:shadow-sdp-red/5 transition-all duration-200"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && onSelect(doc.id)}
+                  className="group cursor-pointer text-left bg-surface border border-[var(--line)] rounded-xl overflow-hidden hover:border-sdp-red/30 hover:shadow-lg hover:shadow-sdp-red/5 transition-all duration-200"
                 >
                   {/* Coloured header strip */}
                   <div className={cn("flex items-center gap-3 px-5 py-4", meta.bg)}>
@@ -814,7 +830,7 @@ export function DocumentGallery({ onSelect }: DocumentGalleryProps) {
                       </button>
                     </div>
                   </div>
-                </button>
+                </div>
               )
             })}
           </div>
