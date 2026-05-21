@@ -445,6 +445,79 @@ export function DocumentGallery({ onSelect }: DocumentGalleryProps) {
     }
   }
 
+  // ── Download single document ───────────────────────────────────────────────
+  function handleDownloadDoc(e: React.MouseEvent, docId: string) {
+    e.stopPropagation()
+    const doc = docs.find((d) => d.id === docId)
+    if (!doc) return
+    const meta         = DOCUMENT_TYPE_META[doc.type]
+    const status       = DOCUMENT_STATUS_META[doc.status]
+    const author       = MOCK_USERS.find((u) => u.id === doc.authorId)
+    const reviewerNames = doc.reviewers
+      .map((id) => MOCK_USERS.find((u) => u.id === id)?.name)
+      .filter(Boolean).join(", ")
+
+    const html = [
+      `<!DOCTYPE html>`,
+      `<html lang="en">`,
+      `<head>`,
+      `<meta charset="UTF-8">`,
+      `<meta name="viewport" content="width=device-width, initial-scale=1.0">`,
+      `<title>${doc.title}</title>`,
+      `<style>`,
+      `  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 960px; margin: 0 auto; padding: 40px 24px; color: #0f172a; line-height: 1.6; }`,
+      `  h1 { font-size: 2rem; font-weight: 700; }`,
+      `  h2 { font-size: 1.35rem; font-weight: 600; margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.4rem; }`,
+      `  h3 { font-size: 1.05rem; font-weight: 600; margin-top: 1.5rem; }`,
+      `  h4 { font-size: 0.95rem; font-weight: 600; margin-top: 1.25rem; }`,
+      `  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.82rem; }`,
+      `  th, td { border: 1px solid #e2e8f0; padding: 7px 11px; text-align: left; vertical-align: top; }`,
+      `  th { background: #f8fafc; font-weight: 600; }`,
+      `  ul, ol { padding-left: 1.5rem; margin: 0.5rem 0; }`,
+      `  li { margin: 0.2rem 0; }`,
+      `  p { margin: 0.65rem 0; }`,
+      `  hr { border: none; border-top: 1px solid #e2e8f0; margin: 2rem 0; }`,
+      `  code { background: #f1f5f9; padding: 2px 5px; border-radius: 4px; font-size: 0.8rem; font-family: monospace; }`,
+      `  a { color: #2563eb; }`,
+      `  .doc-header { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 2rem; }`,
+      `  .badge { display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 999px; background: #e2e8f0; color: #475569; margin-bottom: 10px; }`,
+      `  .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px 16px; margin-top: 8px; }`,
+      `  .meta-item { font-size: 0.78rem; color: #64748b; }`,
+      `  .meta-item strong { color: #334155; }`,
+      `  .footer { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.75rem; color: #94a3b8; }`,
+      `</style>`,
+      `</head>`,
+      `<body>`,
+      `<div class="doc-header">`,
+      `<div class="badge">${meta.label}</div>`,
+      `<div class="meta-grid">`,
+      `<div class="meta-item"><strong>Version</strong> ${doc.version}</div>`,
+      `<div class="meta-item"><strong>Status</strong> ${status.label}</div>`,
+      `<div class="meta-item"><strong>Author</strong> ${author?.name ?? "Unknown"}</div>`,
+      reviewerNames ? `<div class="meta-item"><strong>Reviewers</strong> ${reviewerNames}</div>` : "",
+      `<div class="meta-item"><strong>Created</strong> ${format(new Date(doc.createdAt), "MMM d, yyyy")}</div>`,
+      `<div class="meta-item"><strong>Updated</strong> ${format(new Date(doc.updatedAt), "MMM d, yyyy")}</div>`,
+      doc.linkedWorkItems.length > 0 ? `<div class="meta-item"><strong>Linked items</strong> ${doc.linkedWorkItems.length}</div>` : "",
+      `</div>`,
+      `</div>`,
+      doc.content,
+      `<div class="footer">Exported from Slalom Delivery Platform · ${format(new Date(), "MMMM d, yyyy 'at' HH:mm")} · Meridian Bank Digital Banking Transformation</div>`,
+      `</body>`,
+      `</html>`,
+    ].join("\n")
+
+    const slug = doc.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement("a")
+    a.href     = url
+    a.download = `${slug}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   // ── Download all documents ─────────────────────────────────────────────────
   function handleDownloadAll() {
     const html = [
@@ -730,6 +803,16 @@ export function DocumentGallery({ onSelect }: DocumentGalleryProps) {
                         <span>{doc.linkedWorkItems.length} linked work item{doc.linkedWorkItems.length > 1 ? "s" : ""}</span>
                       </div>
                     )}
+                    {/* Per-card download button */}
+                    <div className="pt-1 border-t border-[var(--line)]">
+                      <button
+                        onClick={(e) => handleDownloadDoc(e, doc.id)}
+                        className="flex items-center gap-1.5 text-[10px] font-medium text-ink-3 hover:text-sdp-red transition-colors w-full py-0.5"
+                      >
+                        <Download className="h-3 w-3 shrink-0" />
+                        Download document
+                      </button>
+                    </div>
                   </div>
                 </button>
               )
