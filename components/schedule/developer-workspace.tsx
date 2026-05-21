@@ -7,7 +7,7 @@ import type { WorkItem } from "@/lib/types"
 import {
   GitFork, GitBranch, GitCommit, GitPullRequest, Terminal,
   Code2, ExternalLink, CheckCircle2, Zap, Copy, Loader2,
-  User, RotateCcw, Upload, FileCode2, GitMerge,
+  User, RotateCcw, Upload, FileCode2, GitMerge, ShieldCheck, X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { VsCodeExportModal } from "@/components/schedule/vscode-export-modal"
@@ -18,10 +18,18 @@ const FAKE_PR_BASE = "https://github.com/slalom/meridian-bank-digital-platform/p
 
 type GitStatus =
   | "idle" | "generating" | "ready"
+  | "dev_approved" | "qa_running" | "qa_passed" | "qa_failed"
   | "committing" | "committed"
   | "pushing" | "pushed" | "pr_created"
 
 interface LogEntry { type: "cmd" | "info" | "ok" | "err" | "remote"; text: string }
+
+interface QACheckState {
+  id:     string
+  label:  string
+  detail: string
+  status: "pending" | "running" | "passed" | "failed"
+}
 
 interface TaskGitState {
   status:        GitStatus
@@ -32,13 +40,31 @@ interface TaskGitState {
   commitHash:    string
   prNumber:      number
   log:           LogEntry[]
+  qaChecks:      QACheckState[]
 }
 
 const DEFAULT_STATE: TaskGitState = {
   status: "idle", code: "", displayCode: "",
   branch: "", commitMessage: "", commitHash: "",
-  prNumber: 0, log: [],
+  prNumber: 0, log: [], qaChecks: [],
 }
+
+// QA pipeline steps — order matters, run sequentially
+const QA_PIPELINE: Array<{
+  id: string; label: string; detail: string
+  cmd: string; ms: number; lines: string[]
+}> = [
+  { id: "lint",     label: "ESLint — code style",   detail: "0 errors · 2 warnings",       cmd: "npm run lint",           ms: 900,
+    lines: ["  Linting 47 source files…", "  ✓ 0 errors, 2 warnings (unused import: line 14)"] },
+  { id: "tests",    label: "Unit tests & coverage",  detail: "12/12 passing · 87.3% cov.",  cmd: "npm test -- --coverage", ms: 1800,
+    lines: ["  PASS src/routes/payment-hub.test.ts (2.1s)", "  PASS src/services/meridian-auth.test.ts (1.4s)", "  PASS src/utils/iban-validator.test.ts (0.3s)", "  Tests: 12 passed, 0 failed", "  Coverage: 87.3% (threshold: 80%)"] },
+  { id: "types",    label: "TypeScript type-check",  detail: "0 type errors",               cmd: "npm run type-check",     ms: 700,
+    lines: ["  ✓ tsc --noEmit: 0 type errors found"] },
+  { id: "security", label: "Security audit (OWASP)", detail: "0 critical · 0 high",         cmd: "npm run security:audit", ms: 1200,
+    lines: ["  npm audit: 0 critical, 0 high vulnerabilities", "  ✓ Dependency check: clean"] },
+  { id: "build",    label: "Production build",       detail: "3.2s · 245 kB",              cmd: "npm run build",          ms: 1400,
+    lines: ["  Creating optimised production build…", "  ✓ Built in 3.2s — 245 kB (gzip: 78 kB)"] },
+]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function slugify(s: string) {
@@ -565,23 +591,28 @@ export function filter${name}(items: ${name}[], status?: string, channel?: strin
 
 // ─── Status pill ──────────────────────────────────────────────────────────────
 const GIT_STATUS_META: Record<GitStatus, { label: string; cls: string }> = {
-  idle:       { label: "No code",     cls: "text-ink-3 bg-elevated" },
-  generating: { label: "Generating…", cls: "text-warning bg-warning/10" },
-  ready:      { label: "Ready",       cls: "text-info bg-info/10" },
-  committing: { label: "Committing…", cls: "text-warning bg-warning/10" },
-  committed:  { label: "Committed",   cls: "text-success bg-success/10" },
-  pushing:    { label: "Pushing…",    cls: "text-warning bg-warning/10" },
-  pushed:     { label: "Pushed",      cls: "text-success bg-success/10" },
-  pr_created: { label: "PR Open",     cls: "text-success bg-success/10" },
+  idle:         { label: "No code",      cls: "text-ink-3 bg-elevated" },
+  generating:   { label: "Generating…",  cls: "text-warning bg-warning/10" },
+  ready:        { label: "Ready",        cls: "text-info bg-info/10" },
+  dev_approved: { label: "Dev Approved", cls: "text-success bg-success/10" },
+  qa_running:   { label: "QA Running…",  cls: "text-warning bg-warning/10" },
+  qa_passed:    { label: "QA Passed",    cls: "text-success bg-success/10" },
+  qa_failed:    { label: "QA Failed",    cls: "text-danger bg-danger/10" },
+  committing:   { label: "Committing…",  cls: "text-warning bg-warning/10" },
+  committed:    { label: "Committed",    cls: "text-success bg-success/10" },
+  pushing:      { label: "Pushing…",     cls: "text-warning bg-warning/10" },
+  pushed:       { label: "Pushed",       cls: "text-success bg-success/10" },
+  pr_created:   { label: "PR Open",      cls: "text-success bg-success/10" },
 }
 
 function GitStatusPill({ status }: { status: GitStatus }) {
   const meta       = GIT_STATUS_META[status]
-  const isSpinning = status === "generating" || status === "committing" || status === "pushing"
+  const isSpinning = status === "generating" || status === "committing" || status === "pushing" || status === "qa_running"
   return (
     <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold", meta.cls)}>
-      {isSpinning  && <Loader2     className="h-2.5 w-2.5 animate-spin" />}
+      {isSpinning  && <Loader2      className="h-2.5 w-2.5 animate-spin" />}
       {status === "pr_created" && <CheckCircle2 className="h-2.5 w-2.5" />}
+      {status === "qa_passed"  && <ShieldCheck  className="h-2.5 w-2.5" />}
       {meta.label}
     </span>
   )
@@ -598,13 +629,18 @@ const LOG_CLS: Record<LogEntry["type"], string> = {
 
 // ─── Git flow step indicator ──────────────────────────────────────────────────
 const FLOW_STEPS: { key: GitStatus; label: string; icon: typeof GitBranch }[] = [
-  { key: "ready",      label: "Code ready",  icon: Code2 },
-  { key: "committed",  label: "Committed",   icon: GitCommit },
-  { key: "pushed",     label: "Pushed",      icon: Upload },
-  { key: "pr_created", label: "PR created",  icon: GitPullRequest },
+  { key: "ready",        label: "Code reviewed", icon: Code2 },
+  { key: "dev_approved", label: "Dev approved",  icon: CheckCircle2 },
+  { key: "qa_passed",    label: "QA passed",     icon: ShieldCheck },
+  { key: "committed",    label: "Committed",     icon: GitCommit },
+  { key: "pr_created",   label: "PR created",    icon: GitPullRequest },
 ]
 
-const STEP_ORDER: GitStatus[] = ["idle","generating","ready","committing","committed","pushing","pushed","pr_created"]
+const STEP_ORDER: GitStatus[] = [
+  "idle","generating","ready",
+  "dev_approved","qa_running","qa_passed","qa_failed",
+  "committing","committed","pushing","pushed","pr_created",
+]
 
 function FlowStep({ stepKey, current, label, Icon }: {
   stepKey: GitStatus; current: GitStatus; label: string; Icon: typeof GitBranch
@@ -613,8 +649,10 @@ function FlowStep({ stepKey, current, label, Icon }: {
   const stepIdx    = STEP_ORDER.indexOf(stepKey)
   const done       = currentIdx > stepIdx
   const active     = current === stepKey ||
-    (stepKey === "committed" && current === "committing") ||
-    (stepKey === "pushed"    && current === "pushing")
+    (stepKey === "committed"    && current === "committing") ||
+    (stepKey === "pushed"       && current === "pushing")    ||
+    (stepKey === "qa_passed"    && current === "qa_running") ||
+    (stepKey === "dev_approved" && current === "qa_running"  && false) // dev_approved is "done" by qa_running
   return (
     <div className={cn("flex items-center gap-1.5 text-[10px]", done || active ? "text-success" : "text-ink-3")}>
       <div className={cn(
@@ -719,6 +757,53 @@ export function DeveloperWorkspace({ projectId }: { projectId: string }) {
 
   // Cleanup timer when unmounted or task changes
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current) }, [selectedId])
+
+  // ── Developer approves → QA pipeline ───────────────────────────────────────
+  const handleApproveForQA = useCallback(async () => {
+    if (!selectedItem || gs.status !== "ready") return
+    const id = selectedItem.id
+
+    const initialChecks: QACheckState[] = QA_PIPELINE.map((q) => ({
+      id: q.id, label: q.label, detail: q.detail, status: "pending",
+    }))
+
+    patchState(id, { status: "qa_running", qaChecks: initialChecks })
+    appendLog(id, { type: "info",   text: "" })
+    appendLog(id, { type: "ok",     text: "✓ Developer approved — initiating QA pipeline" })
+    appendLog(id, { type: "info",   text: "Running 5 automated checks…" })
+    appendLog(id, { type: "info",   text: "" })
+
+    for (let i = 0; i < QA_PIPELINE.length; i++) {
+      const check = QA_PIPELINE[i]
+
+      setTaskStates((prev) => {
+        const cur = prev[id] ?? DEFAULT_STATE
+        return { ...prev, [id]: { ...cur, qaChecks: cur.qaChecks.map((c, idx) => idx === i ? { ...c, status: "running" } : c) } }
+      })
+
+      appendLog(id, { type: "cmd", text: `$ ${check.cmd}` })
+      await delay(check.ms)
+
+      for (const line of check.lines) {
+        appendLog(id, { type: "ok", text: line })
+      }
+
+      setTaskStates((prev) => {
+        const cur = prev[id] ?? DEFAULT_STATE
+        return { ...prev, [id]: { ...cur, qaChecks: cur.qaChecks.map((c, idx) => idx === i ? { ...c, status: "passed" } : c) } }
+      })
+      await delay(180)
+    }
+
+    await delay(300)
+    appendLog(id, { type: "info", text: "" })
+    appendLog(id, { type: "ok",   text: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" })
+    appendLog(id, { type: "ok",   text: "✓ QA Gate: ALL CHECKS PASSED" })
+    appendLog(id, { type: "ok",   text: "✓ Ready to commit and push to origin" })
+    appendLog(id, { type: "info", text: "" })
+
+    patchState(id, { status: "qa_passed" })
+  }, [selectedItem, gs.status, patchState, appendLog])
 
   // ── Commit & push flow ──────────────────────────────────────────────────────
   const handleCommitPush = useCallback(async () => {
@@ -841,9 +926,8 @@ export function DeveloperWorkspace({ projectId }: { projectId: string }) {
   const liveBranch    = gs.branch        || (selectedItem ? getBranch(selectedItem)    : "")
   const liveCommitMsg = gs.commitMessage || (selectedItem ? getCommitMsg(selectedItem) : "")
 
-  const canCommit  = (gs.status === "ready" || gs.status === "committed") &&
-    gs.code.length > 0 && liveCommitMsg.length > 0
-  const isWorking  = gs.status === "committing" || gs.status === "pushing"
+  const canCommit  = gs.status === "qa_passed" && gs.code.length > 0 && liveCommitMsg.length > 0
+  const isWorking  = gs.status === "committing" || gs.status === "pushing" || gs.status === "qa_running"
   const fileName   = selectedItem ? getFileName(selectedItem) : ""
   const assignee   = selectedItem ? MOCK_USERS.find((u) => u.id === selectedItem.assigneeId) : null
   const lineCount  = gs.code ? gs.code.split("\n").length : 0
@@ -1058,6 +1142,43 @@ export function DeveloperWorkspace({ projectId }: { projectId: string }) {
                   </div>
                 </div>
 
+                {/* QA checklist — visible once pipeline starts */}
+                {gs.qaChecks.length > 0 && (
+                  <div className="px-4 py-3 border-b border-[var(--line)] space-y-2">
+                    <p className="text-[10px] uppercase tracking-widest font-semibold text-ink-3 flex items-center gap-1.5">
+                      <ShieldCheck className="h-3 w-3" /> QA Pipeline
+                    </p>
+                    <div className="space-y-2">
+                      {gs.qaChecks.map((check) => (
+                        <div key={check.id} className="flex items-start gap-2">
+                          <div className="h-4 w-4 shrink-0 flex items-center justify-center mt-0.5">
+                            {check.status === "passed"  && <CheckCircle2 className="h-3.5 w-3.5 text-success" />}
+                            {check.status === "running" && <Loader2 className="h-3.5 w-3.5 text-warning animate-spin" />}
+                            {check.status === "failed"  && <X className="h-3.5 w-3.5 text-danger" />}
+                            {check.status === "pending" && <div className="h-2 w-2 rounded-full border border-ink-3/40 mt-0.5" />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className={cn("text-[10px] leading-tight",
+                              check.status === "running" ? "text-warning" :
+                              check.status === "passed"  ? "text-ink" : "text-ink-3"
+                            )}>
+                              {check.label}
+                            </p>
+                            {check.status === "passed" && (
+                              <p className="text-[9px] text-ink-3 mt-0.5">{check.detail}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {gs.status === "qa_passed" && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-success font-semibold pt-1 border-t border-[var(--line)]">
+                        <ShieldCheck className="h-3 w-3" /> QA Gate: PASSED
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Git config */}
                 <div className="px-4 py-3 border-b border-[var(--line)] space-y-2.5">
                   <p className="text-[10px] uppercase tracking-widest font-semibold text-ink-3 flex items-center gap-1.5">
@@ -1115,14 +1236,14 @@ export function DeveloperWorkspace({ projectId }: { projectId: string }) {
                         View on GitHub
                       </a>
                     </div>
-                  ) : (
+                  ) : gs.status === "qa_passed" || gs.status === "committing" || gs.status === "pushing" || gs.status === "committed" ? (
                     <Button
                       variant="primary" size="sm"
                       onClick={handleCommitPush}
-                      disabled={!canCommit || isWorking}
+                      disabled={!canCommit || gs.status === "committing" || gs.status === "pushing"}
                       className="w-full h-8 gap-1.5 text-xs"
                     >
-                      {isWorking ? (
+                      {gs.status === "committing" || gs.status === "pushing" ? (
                         <>
                           <Loader2 className="h-3 w-3 animate-spin" />
                           {gs.status === "committing" ? "Committing…" : "Pushing…"}
@@ -1133,6 +1254,21 @@ export function DeveloperWorkspace({ projectId }: { projectId: string }) {
                           Commit & Push
                         </>
                       )}
+                    </Button>
+                  ) : gs.status === "qa_running" || gs.status === "dev_approved" ? (
+                    <div className="flex items-center gap-2 py-1.5 text-[11px] text-warning">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                      QA pipeline running…
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline" size="sm"
+                      onClick={handleApproveForQA}
+                      disabled={gs.status !== "ready" || !gs.code}
+                      className="w-full h-8 gap-1.5 text-xs border-success/40 text-success hover:bg-success/10 disabled:opacity-40"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Approve for QA
                     </Button>
                   )}
                 </div>

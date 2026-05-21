@@ -51,7 +51,7 @@ Five views over the same Zustand work-item store — switching tabs preserves al
 | **Gantt Timeline** | Horizontal bar chart. Zoom levels: Day · Week · Month · Quarter · Semester · Year. Dependency arrows rendered as SVG. |
 | **Kanban Board** | Swimlane board by sprint. Full card drag-and-drop across columns via dnd-kit. |
 | **Resource View** | Heatmap showing allocation % per team member per week. Cells colour from green → amber → red as load increases. |
-| **Developer** | VS Code–style workspace. Browse the repo tree, view banking code templates (PCI-DSS, Auth0 OIDC, Temenos T24 connector, FCM/APNs push). Export sprint as a `.vscode-workspace` file. |
+| **Developer** | VS Code–style workspace with a full simulated delivery pipeline. Browse the repo tree, view banking code templates, run QA gates, then commit and push. |
 
 **Work Item Wizard** — 4-step slide-over for creating new items:
 
@@ -61,6 +61,22 @@ Five views over the same Zustand work-item store — switching tabs preserves al
 4. Link to a Project Document
 
 Work item types: `phase · stream · epic · story · task · milestone · deliverable`
+
+**Developer Workspace — delivery pipeline**
+
+Selecting a task auto-generates banking-domain code (TypeScript, SQL, React). The full delivery flow is:
+
+1. **Code generated** — AI writes code for the selected task (typewriter animation)
+2. **Approve for QA** — developer clicks the green button after reviewing the code
+3. **QA pipeline** — 5 automated checks run sequentially in the terminal and a live checklist:
+   - ESLint (0 errors)
+   - Unit tests & coverage (12/12 · 87.3%)
+   - TypeScript type-check (0 errors)
+   - Security audit/OWASP (0 critical)
+   - Production build (3.2s · 245 kB)
+4. **QA Gate: PASSED** — "Commit & Push" unlocks
+5. **Commit & Push** — git commands stream into the terminal (checkout, stage, commit, push, PR creation)
+6. **PR created** — link to GitHub PR appears; work item flips to `completed`
 
 ---
 

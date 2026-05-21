@@ -559,12 +559,13 @@ Eliminate the context-switch between the delivery platform and the engineer's ID
 | `service`, `push`, `firebase`, `notification` | Service class with FCM push notification method |
 | *(default)* | Utility module with banking-domain schema (customerId, IBAN, channel, currency) |
 
-**DEV-005** — Code generation shall simulate async work through states: `idle` → `generating` → `committing` → `pushing` → `pr_created`. State transitions shall be time-delayed to model real Git operations.
+**DEV-005** — Code generation shall simulate async work through states: `idle` → `generating` → `ready`. State transitions shall be time-delayed to model real code generation.
 
 **DEV-006** — A terminal-style log panel shall render each state transition as a timestamped log line with colour-coded prefixes:
   - `[GIT]` — branch operations
   - `[PUSH]` — remote push confirmation
   - `[PR]` — pull request creation
+  - `[QA]` — QA pipeline output
   - `[ERROR]` — failure state (red)
 
 **DEV-007** — The simulated PR shall reference the fake repository `slalom/meridian-bank-digital-platform` and produce a fake PR URL in the format `https://github.com/slalom/meridian-bank-digital-platform/pull/{number}`.
@@ -573,7 +574,27 @@ Eliminate the context-switch between the delivery platform and the engineer's ID
 
 **DEV-009** — A "Export to VSCode" action shall open a modal containing the generated code pre-formatted as a VSCode snippet JSON, with a copy-to-clipboard button.
 
-**DEV-010** — The `canCommit` gate shall be true only when: a work item is selected AND a commit message is present (either user-entered or auto-populated from the selected item).
+**DEV-010** — The `canCommit` gate shall be true only when: a work item is selected AND status is `qa_passed` AND a commit message is present (either user-entered or auto-populated from the selected item). The `ready` state alone shall NOT unlock the commit button.
+
+**DEV-011** — When code is in `ready` state, a developer-facing **Approve for QA** button shall be displayed. Clicking it shall log an approval line to the terminal and advance status to `dev_approved`, then immediately begin the QA pipeline.
+
+**DEV-012** — The QA pipeline shall run 5 checks sequentially in the following order, each with a fixed simulated duration:
+
+| Order | Check | Duration |
+|---|---|---|
+| 1 | ESLint — lint source files | ~900 ms |
+| 2 | Unit tests & coverage | ~1800 ms |
+| 3 | TypeScript type-check | ~700 ms |
+| 4 | Security audit / OWASP | ~1200 ms |
+| 5 | Production build | ~1400 ms |
+
+Status shall advance to `qa_running` while the pipeline executes.
+
+**DEV-013** — Each QA check shall transition through states `pending → running → passed`. A live checklist panel shall render the current state of all 5 checks simultaneously. Running checks shall display a spinner; passed checks shall display a green tick.
+
+**DEV-014** — Each QA check shall emit at least one realistic terminal log line during its `running` phase (e.g. ESLint: `✓ 0 errors · 0 warnings found across 47 source files`).
+
+**DEV-015** — When all 5 checks reach `passed`, the terminal shall print `✅ QA Gate: PASSED — all checks green` and status shall advance to `qa_passed`. The **Commit & Push** button shall then become active.
 
 #### UI Spec
 
@@ -592,6 +613,11 @@ Eliminate the context-switch between the delivery platform and the engineer's ID
 | AC-DEV-4 | State reaches `pr_created` | PR URL badge appears; correct fake URL shown |
 | AC-DEV-5 | No task selected, Commit clicked | Button disabled; `canCommit` is false |
 | AC-DEV-6 | "Export to VSCode" clicked | Modal opens with snippet JSON; copy button works |
+| AC-DEV-7 | Code in `ready` state | "Approve for QA" button visible; "Commit & Push" disabled |
+| AC-DEV-8 | "Approve for QA" clicked | Terminal logs approval; 5 QA checks begin sequentially |
+| AC-DEV-9 | QA pipeline running | Checklist shows spinner on active check; prior checks show green tick |
+| AC-DEV-10 | All 5 checks pass | Terminal prints `QA Gate: PASSED`; "Commit & Push" button activates |
+| AC-DEV-11 | Status is `ready` (not `qa_passed`) | "Commit & Push" button remains disabled |
 
 ---
 

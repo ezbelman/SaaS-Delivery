@@ -110,16 +110,24 @@ function generateWorkItemsFromDoc(docType: DocumentType, sprintId?: string): voi
   const epicWbs = maxWbs + 1
   const basePos = workItems.filter((i) => i.projectId === "prj-001").length
 
+  // Compute epic progress from children templates
+  const trackable  = template.items.filter((t) => t.type !== "milestone" && t.type !== "deliverable")
+  const avgPct     = trackable.length
+    ? Math.round(trackable.reduce((s, t) => s + (t.completionPct ?? 0), 0) / trackable.length)
+    : 0
+  const anyDone    = trackable.some((t) => (t.completionPct ?? 0) > 0)
+  const epicStatus = avgPct === 100 ? "completed" : anyDone ? "in_progress" : "not_started"
+
   const epic = addWorkItem({
     projectId:     "prj-001",
     wbsNumber:     String(epicWbs),
     title:         template.epic,
     type:          "epic",
-    status:        "not_started",
+    status:        epicStatus,
     priority:      "high",
-    startDate:     format(today, "yyyy-MM-dd"),
-    endDate:       format(addDays(today, 21), "yyyy-MM-dd"),
-    completionPct: 0,
+    startDate:     format(addDays(today, Math.min(...template.items.map((t) => t.daysOffset))), "yyyy-MM-dd"),
+    endDate:       format(addDays(today, Math.max(...template.items.map((t) => t.daysOffset + t.durationDays))), "yyyy-MM-dd"),
+    completionPct: avgPct,
     dependencies:  [],
     position:      basePos,
     sprintId,
@@ -132,14 +140,15 @@ function generateWorkItemsFromDoc(docType: DocumentType, sprintId?: string): voi
       wbsNumber:      `${epicWbs}.${idx + 1}`,
       title:          tmpl.title,
       type:           tmpl.type,
-      status:         "not_started",
+      status:         tmpl.status ?? "not_started",
       priority:       tmpl.priority,
       assigneeId:     tmpl.assigneeRole ? ASSIGNEE_BY_ROLE[tmpl.assigneeRole] : undefined,
       startDate:      format(addDays(today, tmpl.daysOffset), "yyyy-MM-dd"),
       endDate:        format(addDays(today, tmpl.daysOffset + tmpl.durationDays), "yyyy-MM-dd"),
       estimatedHours: tmpl.estimatedHours,
+      actualHours:    tmpl.actualHours,
       storyPoints:    tmpl.storyPoints,
-      completionPct:  0,
+      completionPct:  tmpl.completionPct ?? 0,
       dependencies:   [],
       position:       basePos + idx + 1,
       sprintId:       tmpl.type !== "milestone" && tmpl.type !== "deliverable" ? sprintId : undefined,

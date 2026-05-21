@@ -194,7 +194,7 @@ Full end-to-end developer coding and delivery loop, embedded in the platform.
 - Branch name: derived as `feature/wi-{id}-{kebab-title}` from the work item's ID and title
 - Commit message: auto-prefixed in conventional-commit format based on item type (`feat`, `fix`, `test`, `refactor`, `chore`)
 - Fields remain user-editable; edits persist per-task in local component state
-- `canCommit` gate: true when a task is selected AND a commit message is present (user-entered or auto-populated)
+- `canCommit` gate: true when a task is selected AND status is `qa_passed` AND a commit message is present
 - Branch field shows `border-sdp-red/30` and red `GitBranch` icon when populated; neutral border when empty
 
 **Code editor**
@@ -215,12 +215,29 @@ Full end-to-end developer coding and delivery loop, embedded in the platform.
 - Copy to clipboard
 
 **Delivery flow panel**
-- 4-step visual pipeline: `Code ready → Committed → Pushed → PR created`
+- 5-step visual pipeline: `Code ready → Dev approved → QA passed → Committed → PR created`
+- Each step lights up as the corresponding state is reached
+
+**QA pipeline _(v1.7 — new)_**
+- After code is generated and reviewed, developer clicks **Approve for QA** to hand off to the automated QA gate
+- 5 sequential checks run with simulated terminal output and a live checklist:
+
+  | # | Check | Duration | Pass condition |
+  |---|-------|----------|----------------|
+  | 1 | ESLint | ~900 ms | 0 errors, 0 warnings |
+  | 2 | Unit tests & coverage | ~1800 ms | 12/12 · 87.3% coverage |
+  | 3 | TypeScript type-check | ~700 ms | 0 errors |
+  | 4 | Security audit / OWASP | ~1200 ms | 0 critical vulnerabilities |
+  | 5 | Production build | ~1400 ms | 3.2 s · 245 kB |
+
+- Each check transitions: `pending → running → passed`
+- On all 5 passing: terminal prints `QA Gate: PASSED` and status advances to `qa_passed`
+- **Commit & Push** button unlocks only when status is `qa_passed`
 
 **Git operations panel**
 - Auto-populated branch and commit message on task selection (no code generation needed)
-- Terminal-style log panel: timestamped lines with `[GIT]`, `[PUSH]`, `[PR]`, `[ERROR]` prefixes
-- **Commit & Push** button triggers animated git workflow:
+- Terminal-style log panel: timestamped lines with `[GIT]`, `[PUSH]`, `[PR]`, `[QA]`, `[ERROR]` prefixes
+- **Commit & Push** button (unlocked after QA passes) triggers animated git workflow:
   1. `git checkout -b {branch}`
   2. `git add {file}` + `git diff --staged --stat`
   3. `git commit -m "{message}"` → short hash returned
