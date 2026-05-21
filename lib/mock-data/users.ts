@@ -1,0 +1,126 @@
+import type { User, Organization, Workspace, Project } from "../types"
+
+export const MOCK_USERS: User[] = [
+  {
+    id: "usr-001",
+    email: "slalom@slalom.com",
+    name: "Alex Rivera",
+    role: "program_manager",
+    title: "Senior Program Manager",
+    department: "Delivery Excellence",
+    createdAt: "2024-01-15T09:00:00Z",
+  },
+  {
+    id: "usr-002",
+    email: "admin@slalom.com",
+    name: "Jordan Chen",
+    role: "admin",
+    title: "Platform Administrator",
+    department: "Technology",
+    createdAt: "2024-01-10T09:00:00Z",
+  },
+  {
+    id: "usr-003",
+    email: "sarah.pm@slalom.com",
+    name: "Sarah Mitchell",
+    role: "project_manager",
+    title: "Project Manager — Banking Transformation",
+    department: "Delivery",
+    createdAt: "2024-02-01T09:00:00Z",
+  },
+  {
+    id: "usr-004",
+    email: "marcus.sm@slalom.com",
+    name: "Marcus Johnson",
+    role: "scrum_master",
+    title: "Scrum Master",
+    department: "Agile Delivery",
+    createdAt: "2024-02-05T09:00:00Z",
+  },
+  {
+    id: "usr-005",
+    email: "priya.dev@slalom.com",
+    name: "Priya Sharma",
+    role: "team_member",
+    title: "Senior Full-Stack Developer",
+    department: "Engineering",
+    createdAt: "2024-02-10T09:00:00Z",
+  },
+  {
+    id: "usr-006",
+    email: "tom.ba@slalom.com",
+    name: "Tom Bradley",
+    role: "team_member",
+    title: "Business Analyst / Product Owner",
+    department: "Analysis",
+    createdAt: "2024-02-12T09:00:00Z",
+  },
+  {
+    id: "usr-007",
+    email: "diana.vp@meridianbank.com",
+    name: "Diana Foster",
+    role: "client_viewer",
+    title: "VP Digital Banking",
+    department: "Digital & Innovation",
+    createdAt: "2024-03-01T09:00:00Z",
+  },
+  {
+    id: "usr-008",
+    email: "super@slalom.com",
+    name: "Nathan Park",
+    role: "super_admin",
+    title: "Platform Owner",
+    department: "Platform Engineering",
+    createdAt: "2024-01-01T09:00:00Z",
+  },
+]
+
+export const MOCK_ORG: Organization = {
+  id: "org-001",
+  name: "Slalom Consulting",
+  slug: "slalom",
+  plan: "enterprise",
+}
+
+export const MOCK_WORKSPACE: Workspace = {
+  id: "ws-001",
+  orgId: "org-001",
+  name: "Meridian Bank — Digital Banking Transformation",
+  slug: "meridian-bank-dt",
+  description: "End-to-end modernization of Meridian Bank's digital banking suite — mobile app, web portal, and open banking API layer",
+  createdAt: "2024-01-20T09:00:00Z",
+}
+
+export const MOCK_PROJECTS: Project[] = [
+  {
+    id: "prj-001",
+    workspaceId: "ws-001",
+    name: "Digital Banking Platform v3.0",
+    description: "Full redesign and modernization of Meridian Bank's mobile and web banking applications, including biometric auth, instant payments, and PSD2-compliant open banking APIs",
+    status: "active",
+    health: "amber",
+    startDate: "2024-02-01",
+    endDate: "2024-12-31",
+    ownerId: "usr-001",
+    budget: 5800000,
+    methodology: "hybrid",
+    createdAt: "2024-01-25T09:00:00Z",
+  },
+  {
+    id: "prj-002",
+    workspaceId: "ws-001",
+    name: "Open Banking API Gateway",
+    description: "PSD2-compliant open banking API gateway enabling third-party fintech integrations and real-time payment rails",
+    status: "planning",
+    health: "green",
+    startDate: "2024-07-01",
+    endDate: "2025-03-31",
+    ownerId: "usr-003",
+    budget: 2400000,
+    methodology: "agile",
+    createdAt: "2024-05-10T09:00:00Z",
+  },
+]
+
+export const CURRENT_USER = MOCK_USERS[0]
+export const CURRENT_PROJECT = MOCK_PROJECTS[0]

@@ -1,26 +1,240 @@
 @import "tailwindcss";
 
+/* ─── Slalom Delivery Platform — Design System ─────────────────────────────── */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Slalom Official Brand Palette ────────────────────────────────────────── */
+  /* Primary */
+  --slalom-blue:       #0C62FB;   /* Blue Ribbon — Slalom primary */
+  --slalom-blue-dark:  #0A4FCC;   /* hover / pressed state */
+  --slalom-blue-light: rgba(12, 98, 251, 0.12);
+  --slalom-blue-mid:   #5B9AFF;   /* Malibu — secondary / lighter blue */
+
+  /* Neutral */
+  --slalom-black:      #0A0E14;
+  --slalom-white:      #FFFFFF;
+
+  /* Decorative gold (concentric circle motif) */
+  --sdp-gold:          #F5A623;
+  --sdp-gold-dim:      rgba(245, 166, 35, 0.18);
+
+  /* ── Compat alias — keeps every `sdp-red` Tailwind class working ─────────── */
+  --sdp-red:           var(--slalom-blue);
+  --sdp-red-dark:      var(--slalom-blue-dark);
+  --sdp-red-light:     var(--slalom-blue-light);
+
+  /* Base surfaces — Slalom deep navy */
+  --bg:              #060D1A;
+  --surface:         #091525;
+  --elevated:        #0F2240;
+  --overlay:         #162D55;
+  --line:            rgba(255,255,255,0.07);
+
+  /* Text */
+  --ink:             #EFF2F8;
+  --ink-2:           #8FA4C0;
+  --ink-3:           #3D5470;
+
+  /* Semantic */
+  --success:         #22C55E;
+  --warning:         #F59E0B;
+  --danger:          #EF4444;
+  --info:            #5B9AFF;   /* use Malibu for info — stays on-brand */
+
+  /* Accent aliases */
+  --accent:          var(--slalom-blue);
+  --accent-blue:     var(--slalom-blue-mid);
+}
+
+/* Light mode */
+.light {
+  --bg:              #F4F7FC;
+  --surface:         #FFFFFF;
+  --elevated:        #EDF1F8;
+  --overlay:         #E0E7F2;
+  --line:            rgba(10, 25, 65, 0.07);
+  --ink:             #0A1929;
+  --ink-2:           #3D5470;
+  --ink-3:           #8FA4C0;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Brand */
+  --color-sdp-red:            var(--sdp-red);
+  --color-sdp-red-dark:       var(--sdp-red-dark);
+  --color-sdp-gold:           var(--sdp-gold);
+  --color-slalom-blue:        var(--slalom-blue);
+  --color-slalom-blue-mid:    var(--slalom-blue-mid);
+  --color-slalom-blue-dark:   var(--slalom-blue-dark);
+
+  /* Surfaces */
+  --color-bg:               var(--bg);
+  --color-surface:          var(--surface);
+  --color-elevated:         var(--elevated);
+  --color-overlay:          var(--overlay);
+
+  /* Text */
+  --color-ink:              var(--ink);
+  --color-ink-2:            var(--ink-2);
+  --color-ink-3:            var(--ink-3);
+
+  /* Semantic */
+  --color-success:          var(--success);
+  --color-warning:          var(--warning);
+  --color-danger:           var(--danger);
+  --color-info:             var(--info);
+  --color-accent:           var(--accent);
+
+  /* Fonts */
+  --font-sans:              var(--font-inter);
+  --font-display:           var(--font-space-grotesk);
+  --font-mono:              var(--font-jetbrains);
+
+  /* Border radius */
+  --radius-sm:   0.375rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-2xl:  1.25rem;
+
+  /* Animations */
+  --animate-fade-up:      fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in:      fade-in 0.25s ease both;
+  --animate-scale-in:     scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-right:  slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-shimmer:      shimmer 1.5s infinite;
+  --animate-pulse-gold:   pulse-gold 3s ease-in-out infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Keyframes ──────────────────────────────────────────────────────────────*/
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.6; }
+}
+
+@keyframes orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────────*/
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-font-smoothing: antialiased; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-3); }
+
+/* Selection */
+::selection { background: rgba(12, 98, 251, 0.25); color: var(--ink); }
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--sdp-red);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Delay utilities ─────────────────────────────────────────────────────── */
+.delay-50  { animation-delay: 50ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-250 { animation-delay: 250ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+
+/* ─── Shimmer skeleton ────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--elevated) 25%, var(--overlay) 50%, var(--elevated) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* ─── Slalom decorative — dot grid ───────────────────────────────────────── */
+.sdp-dots {
+  background-image: radial-gradient(circle, rgba(245, 166, 35, 0.28) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ─── Slalom asterisk section separator ──────────────────────────────────── */
+.sdp-sep {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--ink-3);
+  font-size: 0.5rem;
+  letter-spacing: 0.6em;
+  user-select: none;
+}
+.sdp-sep::before,
+.sdp-sep::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ─── Slalom italic headline utility ─────────────────────────────────────── */
+.sdp-headline-em {
+  font-style: italic;
+  font-weight: 300;
+  opacity: 0.6;
+}
+
+/* ─── Slalom gold pulse dot ──────────────────────────────────────────────── */
+.sdp-gold-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sdp-gold);
+  animation: pulse-gold 3s ease-in-out infinite;
+}
+
+/* ─── Gantt chart baseline ────────────────────────────────────────────────── */
+.gantt-container { overflow-x: auto; overflow-y: hidden; }
+.gantt-row:hover { background: var(--elevated); }
+
+/* ─── Kanban card drag ────────────────────────────────────────────────────── */
+.kanban-card-dragging {
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  transform: rotate(1.5deg) scale(1.02);
+  opacity: 0.9;
 }
