@@ -68,7 +68,7 @@ export const useDocumentStore = create<DocumentState>()(
       reset: () => set({ documents: MOCK_DOCUMENTS, selectedId: null }),
     }),
     {
-      name: "sdp-documents-v1",
+      name: "sdp-documents-v2",
       partialize: (s) => ({ documents: s.documents }),
     }
   )
