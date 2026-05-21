@@ -1,12 +1,13 @@
 "use client"
 import { useMemo } from "react"
+import { TeamsDeliveryCard } from "@/components/overview/teams-delivery-card"
 import { PageHeader, KPIRow, StatCard } from "@/components/layout/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge, RAGBadge, StatusBadge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { useRaidKPIs } from "@/stores/raidStore"
+import { useRaidItems, useRaidKPIs } from "@/stores/raidStore"
 import { useWorkItems, useSprints, useActiveSprint } from "@/stores/scheduleStore"
 import { useCurrentUser } from "@/stores/authStore"
 import { MOCK_PROJECTS, MOCK_USERS } from "@/lib/mock-data/users"
@@ -51,6 +52,7 @@ export default function OverviewPage() {
   const user = useCurrentUser()
   const project = MOCK_PROJECTS[0]
   const raidKPIs = useRaidKPIs("prj-001")
+  const raidItems = useRaidItems("prj-001")
   const workItems = useWorkItems("prj-001")
   const activeSprint = useActiveSprint("prj-001")
   const sprints = useSprints("prj-001")
@@ -68,6 +70,58 @@ export default function OverviewPage() {
   const daysRemaining = getDaysBetween(new Date(), project.endDate)
   const totalDays = getDaysBetween(project.startDate, project.endDate)
   const timePct = Math.round(((totalDays - daysRemaining) / totalDays) * 100)
+  const ownerAlerts = useMemo(() => {
+    const usersById = new Map(MOCK_USERS.map((user) => [user.id, user]))
+    const owners = new Map<string, {
+      userId: string
+      name: string
+      email: string
+      blockedTaskTitles: string[]
+      raidTitles: string[]
+    }>()
+
+    for (const item of workItems) {
+      if (item.status !== "blocked" || !item.assigneeId) continue
+      const user = usersById.get(item.assigneeId)
+      if (!user) continue
+
+      const current = owners.get(user.id) ?? {
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        blockedTaskTitles: [],
+        raidTitles: [],
+      }
+
+      current.blockedTaskTitles.push(item.title)
+      owners.set(user.id, current)
+    }
+
+    for (const item of raidItems) {
+      if (item.status === "closed") continue
+      const user = usersById.get(item.ownerId)
+      if (!user) continue
+
+      const current = owners.get(user.id) ?? {
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        blockedTaskTitles: [],
+        raidTitles: [],
+      }
+
+      current.raidTitles.push(item.title)
+      owners.set(user.id, current)
+    }
+
+    return Array.from(owners.values())
+      .sort((left, right) => {
+        const leftScore = left.blockedTaskTitles.length * 10 + left.raidTitles.length
+        const rightScore = right.blockedTaskTitles.length * 10 + right.raidTitles.length
+        return rightScore - leftScore
+      })
+      .slice(0, 3)
+  }, [raidItems, workItems])
 
   return (
     <div className="flex flex-col h-full">
@@ -209,6 +263,18 @@ export default function OverviewPage() {
             </CardContent>
           </Card>
         </div>
+
+        <TeamsDeliveryCard
+          projectName={project.name}
+          projectHealthLabel={project.health === "green" ? "On Track" : project.health === "amber" ? "At Risk" : project.health === "red" ? "Off Track" : "Not Started"}
+          activeSprintName={activeSprint?.name}
+          activeSprintEndDate={activeSprint?.endDate}
+          programPct={programPct}
+          blockedItems={blockedItems}
+          openRaidItems={raidKPIs.open}
+          overdueRaidItems={raidKPIs.overdue}
+          ownerAlerts={ownerAlerts}
+        />
 
         {/* Charts row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up delay-150">

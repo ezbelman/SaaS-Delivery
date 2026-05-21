@@ -2,24 +2,27 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { User, UserRole } from "@/lib/types"
-import { MOCK_USERS, MOCK_ORG, MOCK_WORKSPACE, MOCK_PROJECTS } from "@/lib/mock-data/users"
+import { MOCK_USERS } from "@/lib/mock-data/users"
 import { MOCK_CREDENTIALS } from "@/lib/constants"
 
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
   simulatedRole: UserRole | null
+  hasHydrated: boolean
   login: (email: string, password: string) => { success: boolean; error?: string }
   logout: () => void
   setSimulatedRole: (role: UserRole) => void
+  setHasHydrated: (value: boolean) => void
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       isAuthenticated: false,
       simulatedRole: null,
+      hasHydrated: false,
 
       login: (email, password) => {
         if (
@@ -38,6 +41,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setSimulatedRole: (role) => set({ simulatedRole: role }),
+      setHasHydrated: (value) => set({ hasHydrated: value }),
     }),
     {
       name: "sdp-auth",
@@ -46,11 +50,15 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         simulatedRole: state.simulatedRole,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
     }
   )
 )
 
 export const useCurrentUser = () => useAuthStore((s) => s.user)
 export const useIsAuthenticated = () => useAuthStore((s) => s.isAuthenticated)
+export const useAuthHasHydrated = () => useAuthStore((s) => s.hasHydrated)
 export const useEffectiveRole = (): UserRole | null =>
   useAuthStore((s) => s.simulatedRole ?? s.user?.role ?? null)

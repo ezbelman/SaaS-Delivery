@@ -30,6 +30,27 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Optional: Teams Channel Alert Demo
+
+The `/overview` page includes a Teams channel alert card intended for demo scenarios.
+
+Recommended setup:
+
+1. In Microsoft Teams, open the **Workflows** app.
+2. Create a flow using **When a Teams webhook request is received**.
+3. Add a step that posts a message to your target Teams channel.
+4. Copy the generated webhook URL.
+5. Paste it into the alert card on `/overview`.
+
+This app posts a JSON payload with a `text` field through a local Next.js API route so the webhook URL stays out of the browser request target.
+
+Optional server-side config:
+
+```bash
+TEAMS_DAILY_ALERT_WEBHOOK_URL=https://your-daily-alert-workflow-url
+TEAMS_INDIVIDUAL_ALERT_WEBHOOK_URL=https://your-individual-alert-workflow-url
+```
+
 ### Login
 
 ```

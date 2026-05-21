@@ -1,7 +1,7 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthStore } from "@/stores/authStore"
+import { useAuthHasHydrated, useAuthStore } from "@/stores/authStore"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, Eye, EyeOff } from "lucide-react"
@@ -9,11 +9,19 @@ import { AlertCircle, Eye, EyeOff } from "lucide-react"
 export default function LoginPage() {
   const router = useRouter()
   const login = useAuthStore((s) => s.login)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const hasHydrated = useAuthHasHydrated()
   const [email, setEmail] = useState("slalom@slalom.com")
   const [password, setPassword] = useState("")
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    if (hasHydrated && isAuthenticated) {
+      router.replace("/overview")
+    }
+  }, [hasHydrated, isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

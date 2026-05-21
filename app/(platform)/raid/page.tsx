@@ -17,7 +17,7 @@ import type { RaidItem, RaidType, RaidStatus, Priority } from "@/lib/types"
 import {
   Plus, Search, Filter, Download, ShieldAlert, AlertTriangle,
   CheckCircle2, Info, ChevronDown, MoreHorizontal, Edit2, Trash2,
-  ExternalLink, Clock, User, Tag, X,
+  ExternalLink, Clock, User, Tag, X, Send,
 } from "lucide-react"
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
@@ -115,9 +115,74 @@ function RaidRow({
   )
 }
 
+function buildRaidOwnerAlertMessage(item: RaidItem) {
+  const dueLabel = item.dueDate ? formatDate(item.dueDate, "MMM d") : "No due date"
+  const whyItMatters = item.impact ?? item.description
+  const nextStep = item.responsePlan ?? "Review the RAID item and confirm next step."
+
+  return [
+    `Type: ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}`,
+    `Priority: ${item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}`,
+    `Due: ${dueLabel}`,
+    `Why: ${whyItMatters}`,
+    `Next: ${nextStep}`,
+  ].join("\n")
+}
+
 function RaidDetail({ item, onClose }: { item: RaidItem; onClose: () => void }) {
   const { updateItem } = useRaidStore()
   const owner = MOCK_USERS.find((u) => u.id === item.ownerId)
+  const [isSendingAlert, setIsSendingAlert] = useState(false)
+  const [alertStatus, setAlertStatus] = useState("")
+  const [alertError, setAlertError] = useState("")
+
+  async function handleNotifyOwner() {
+    if (!owner) {
+      setAlertError("This RAID item has no mapped owner.")
+      setAlertStatus("")
+      return
+    }
+
+    setIsSendingAlert(true)
+    setAlertStatus("")
+    setAlertError("")
+
+    try {
+      const response = await fetch("/api/teams-alert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          alertType: "individual",
+          alertTitle: item.id ? `${item.id.toUpperCase()} · ${item.title}` : item.title,
+          projectName: "Digital Banking Platform v3.0",
+          projectHealthLabel: item.status === "escalated" ? "Escalated" : "At Risk",
+          messageText: buildRaidOwnerAlertMessage(item),
+          ownerAlerts: [
+            {
+              userId: owner.id,
+              name: owner.name,
+              email: owner.email,
+              blockedTaskTitles: [],
+              raidTitles: [item.title],
+            },
+          ],
+        }),
+      })
+
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Teams owner alert failed.")
+      }
+
+      setAlertStatus(`Owner alert sent for ${owner.name}.`)
+    } catch (error) {
+      setAlertError(error instanceof Error ? error.message : "Teams owner alert failed.")
+    } finally {
+      setIsSendingAlert(false)
+    }
+  }
 
   return (
     <>
@@ -217,9 +282,32 @@ function RaidDetail({ item, onClose }: { item: RaidItem; onClose: () => void }) 
             ))}
           </div>
         </div>
+
+        <div>
+          <p className="text-xs text-ink-3 uppercase tracking-wider mb-2">Owner Alert</p>
+          <div className="rounded-lg border border-[var(--line)] bg-elevated p-3 space-y-2">
+            <p className="text-sm text-ink-2">
+              Sends a targeted Teams channel alert for this item and mentions the owner section in the alert card.
+            </p>
+            {owner && (
+              <p className="text-xs text-ink-3">
+                Demo mention target: {process.env.NEXT_PUBLIC_TEAMS_ALERT_MENTION_EMAIL ?? "configured server-side"}
+              </p>
+            )}
+            {alertStatus && (
+              <p className="text-sm text-success">{alertStatus}</p>
+            )}
+            {alertError && (
+              <p className="text-sm text-danger">{alertError}</p>
+            )}
+          </div>
+        </div>
       </SlideOverBody>
       <SlideOverFooter>
         <Button variant="ghost" onClick={onClose}>Close</Button>
+        <Button variant="secondary" onClick={handleNotifyOwner} loading={isSendingAlert} disabled={!owner}>
+          <Send className="h-3.5 w-3.5" /> Notify Owner
+        </Button>
         <Button variant="primary">Save Changes</Button>
       </SlideOverFooter>
     </>
