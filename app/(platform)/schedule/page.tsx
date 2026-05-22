@@ -3,13 +3,15 @@ import { useState } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { useScheduleStore } from "@/stores/scheduleStore"
+
 import { WBSTree } from "@/components/schedule/wbs-tree"
 import { GanttChart } from "@/components/schedule/gantt-chart"
 import { KanbanBoard } from "@/components/schedule/kanban-board"
 import { ResourceHeatmap } from "@/components/schedule/resource-heatmap"
 import { DeveloperWorkspace } from "@/components/schedule/developer-workspace"
 import { WorkItemWizard } from "@/components/schedule/work-item-wizard"
-import { List, GitBranch, LayoutGrid, Users, Plus, Download, Code2 } from "lucide-react"
+import { List, GitBranch, LayoutGrid, Users, Plus, Code2 } from "lucide-react"
+import { ExportDropdown } from "@/components/schedule/export-dropdown"
 import { cn } from "@/lib/utils"
 import { MOCK_PROJECTS } from "@/lib/mock-data/users"
 import { useActiveSprint } from "@/stores/scheduleStore"
@@ -60,9 +62,7 @@ export default function SchedulePage() {
             )}
             {view !== "developer" && (
               <>
-                <Button variant="outline" size="sm">
-                  <Download className="h-3.5 w-3.5" /> Export
-                </Button>
+                <ExportDropdown />
                 <Button variant="primary" size="sm" onClick={() => setAddOpen(true)}>
                   <Plus className="h-3.5 w-3.5" /> Add Item
                 </Button>
