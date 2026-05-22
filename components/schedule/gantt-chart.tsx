@@ -91,7 +91,23 @@ function TaskBar({
 export function GanttChart({ projectId }: { projectId: string }) {
   const { workItems, selectedId, setSelected } = useScheduleStore()
   const [zoom, setZoom] = useState<ZoomLevel>("month")
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollRef  = useRef<HTMLDivElement>(null)
+  const leftRef    = useRef<HTMLDivElement>(null)
+  const isSyncing  = useRef(false)
+
+  function handleRightScroll() {
+    if (isSyncing.current || !leftRef.current || !scrollRef.current) return
+    isSyncing.current = true
+    leftRef.current.scrollTop = scrollRef.current.scrollTop
+    isSyncing.current = false
+  }
+
+  function handleLeftScroll() {
+    if (isSyncing.current || !leftRef.current || !scrollRef.current) return
+    isSyncing.current = true
+    scrollRef.current.scrollTop = leftRef.current.scrollTop
+    isSyncing.current = false
+  }
 
   // Flatten into display order: phases → streams → tasks/milestones
   const flatItems = useMemo(() => {
@@ -311,9 +327,9 @@ export function GanttChart({ projectId }: { projectId: string }) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel: task labels */}
-        <div className="shrink-0 overflow-y-hidden border-r border-[var(--line)]" style={{ width: labelWidth }}>
-          <div className="h-10 border-b border-[var(--line)] bg-elevated" />
-          <div className="overflow-y-auto" style={{ height: `${chartHeight}px` }}>
+        <div className="shrink-0 flex flex-col overflow-hidden border-r border-[var(--line)]" style={{ width: labelWidth }}>
+          <div className="h-10 shrink-0 border-b border-[var(--line)] bg-elevated" />
+          <div ref={leftRef} className="flex-1 overflow-y-auto" onScroll={handleLeftScroll}>
             {flatItems.map((item) => {
               const owner   = MOCK_USERS.find((u) => u.id === item.assigneeId)
               const isPhase = item.type === "phase"
@@ -353,7 +369,7 @@ export function GanttChart({ projectId }: { projectId: string }) {
         </div>
 
         {/* Right panel: SVG Gantt */}
-        <div ref={scrollRef} className="flex-1 overflow-auto">
+        <div ref={scrollRef} className="flex-1 overflow-auto" onScroll={handleRightScroll}>
           <svg width={chartWidth} height={HEADER_H + chartHeight} style={{ display: "block", minWidth: "100%" }}>
             {/* Header background */}
             <rect x={0} y={0} width={chartWidth} height={HEADER_H} fill="var(--elevated)" />

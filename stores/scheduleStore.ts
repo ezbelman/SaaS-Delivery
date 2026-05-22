@@ -105,7 +105,7 @@ export const useScheduleStore = create<ScheduleState>()(
         }),
     }),
     {
-      name: "sdp-schedule-v2",
+      name: "sdp-schedule-v3",
       partialize: (s) => ({
         workItems: s.workItems,
         sprints: s.sprints,

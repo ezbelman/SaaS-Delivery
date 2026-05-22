@@ -11,7 +11,7 @@ import { addDays, addWeeks, startOfWeek, format, eachMonthOfInterval, startOfMon
 import { AlertTriangle, TrendingUp, Users, ChevronRight, BarChart2 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-const TEAM_IDS   = ["usr-001", "usr-003", "usr-004", "usr-005", "usr-006"]
+const TEAM_IDS   = ["usr-001", "usr-003", "usr-004", "usr-005", "usr-006", "usr-009", "usr-010", "usr-011", "usr-012", "usr-013"]
 
 // Management overhead base % (meetings, admin, planning)
 const MGMT_BASE: Record<string, number> = {
