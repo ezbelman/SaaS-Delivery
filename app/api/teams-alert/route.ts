@@ -16,6 +16,27 @@ interface TeamsAlertRequest {
   }[]
 }
 
+function getAppBaseUrl(request: Request) {
+  const explicitOrigin = request.headers.get("origin")?.trim()
+  if (explicitOrigin) return explicitOrigin
+
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.trim()
+  const forwardedHost = request.headers.get("x-forwarded-host")?.trim()
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`
+  }
+
+  const host = request.headers.get("host")?.trim()
+  if (host) {
+    const proto = host.includes("localhost") || host.startsWith("127.0.0.1")
+      ? "http"
+      : "https"
+    return `${proto}://${host}`
+  }
+
+  return process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000"
+}
+
 function getConfiguredWebhookUrl(alertType: TeamsAlertRequest["alertType"]) {
   if (alertType === "individual") {
     return process.env.TEAMS_INDIVIDUAL_ALERT_WEBHOOK_URL?.trim() || ""
@@ -187,7 +208,7 @@ export async function POST(request: Request) {
   const alertType = body?.alertType === "individual" ? "individual" : "daily"
   const webhookUrl = body?.webhookUrl?.trim() || getConfiguredWebhookUrl(alertType)
   const messageText = body?.messageText?.trim() || ""
-  const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000"
+  const appBaseUrl = getAppBaseUrl(request)
 
   if (!webhookUrl) {
     return NextResponse.json(
@@ -222,7 +243,7 @@ export async function POST(request: Request) {
         projectName: body?.projectName?.trim() || "",
         projectHealthLabel: body?.projectHealthLabel?.trim() || "",
         ownerAlerts: body?.ownerAlerts ?? [],
-        appBaseUrl: origin,
+        appBaseUrl,
       })
     ),
   })

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -135,11 +135,29 @@ function RaidDetail({ item, onClose }: { item: RaidItem; onClose: () => void }) 
   const [isSendingAlert, setIsSendingAlert] = useState(false)
   const [alertStatus, setAlertStatus] = useState("")
   const [alertError, setAlertError] = useState("")
+  const [individualAlertsConfigured, setIndividualAlertsConfigured] = useState(true)
+
+  useEffect(() => {
+    void fetch("/api/teams-alert")
+      .then((response) => response.json())
+      .then((payload: { individualConfigured?: boolean }) => {
+        setIndividualAlertsConfigured(Boolean(payload.individualConfigured))
+      })
+      .catch(() => {
+        setIndividualAlertsConfigured(false)
+      })
+  }, [])
 
   async function handleNotifyOwner() {
     if (!owner) {
       setAlertError("This RAID item has no mapped owner.")
       setAlertStatus("")
+      return
+    }
+
+    if (!individualAlertsConfigured) {
+      setAlertError("")
+      setAlertStatus("Owner alerts are available from the local demo environment.")
       return
     }
 
@@ -305,7 +323,12 @@ function RaidDetail({ item, onClose }: { item: RaidItem; onClose: () => void }) 
       </SlideOverBody>
       <SlideOverFooter>
         <Button variant="ghost" onClick={onClose}>Close</Button>
-        <Button variant="secondary" onClick={handleNotifyOwner} loading={isSendingAlert} disabled={!owner}>
+        <Button
+          variant="secondary"
+          onClick={handleNotifyOwner}
+          loading={isSendingAlert}
+          disabled={!owner || !individualAlertsConfigured}
+        >
           <Send className="h-3.5 w-3.5" /> Notify Owner
         </Button>
         <Button variant="primary">Save Changes</Button>
