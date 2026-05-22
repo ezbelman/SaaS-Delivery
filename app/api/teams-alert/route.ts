@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server"
 
+// Temporary demo fallback URLs. Replace with Vercel env vars after the demo.
+const DEMO_DAILY_ALERT_WEBHOOK_URL =
+  "https://default9ca75128a2444596877bf24828e476.e2.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/f4ede95462c141e995a895dda424f00f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=X24b9hDKpo9OntSZ0Xq2L6cPPfzZvAIMHgHy3IA4IX4"
+
+const DEMO_INDIVIDUAL_ALERT_WEBHOOK_URL =
+  "https://default9ca75128a2444596877bf24828e476.e2.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3ad36634f9af4d098aa43df7e7b1edc3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=J4jp16RWf4orLjpdPxdfITsNL2Sn9fx2FcuJd9-lE7A"
+
 interface TeamsAlertRequest {
   alertType?: "daily" | "individual"
   webhookUrl?: string
@@ -39,10 +46,13 @@ function getAppBaseUrl(request: Request) {
 
 function getConfiguredWebhookUrl(alertType: TeamsAlertRequest["alertType"]) {
   if (alertType === "individual") {
-    return process.env.TEAMS_INDIVIDUAL_ALERT_WEBHOOK_URL?.trim() || ""
+    return (
+      process.env.TEAMS_INDIVIDUAL_ALERT_WEBHOOK_URL?.trim() ||
+      DEMO_INDIVIDUAL_ALERT_WEBHOOK_URL
+    )
   }
 
-  return process.env.TEAMS_DAILY_ALERT_WEBHOOK_URL?.trim() || ""
+  return process.env.TEAMS_DAILY_ALERT_WEBHOOK_URL?.trim() || DEMO_DAILY_ALERT_WEBHOOK_URL
 }
 
 function buildAdaptiveCardPayload({
@@ -263,7 +273,11 @@ export async function POST(request: Request) {
 
 export async function GET() {
   return NextResponse.json({
-    dailyConfigured: Boolean(process.env.TEAMS_DAILY_ALERT_WEBHOOK_URL?.trim()),
-    individualConfigured: Boolean(process.env.TEAMS_INDIVIDUAL_ALERT_WEBHOOK_URL?.trim()),
+    dailyConfigured: Boolean(
+      process.env.TEAMS_DAILY_ALERT_WEBHOOK_URL?.trim() || DEMO_DAILY_ALERT_WEBHOOK_URL
+    ),
+    individualConfigured: Boolean(
+      process.env.TEAMS_INDIVIDUAL_ALERT_WEBHOOK_URL?.trim() || DEMO_INDIVIDUAL_ALERT_WEBHOOK_URL
+    ),
   })
 }
