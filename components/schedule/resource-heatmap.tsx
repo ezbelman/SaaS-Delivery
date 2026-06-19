@@ -23,11 +23,24 @@ const TEAM_IDS = [
   "usr-009", "usr-010", "usr-011", "usr-012", "usr-013",
 ]
 
+const TEAM_MEMBER_DISPLAY: Record<string, { name: string; title: string }> = {
+  "usr-001": { name: "Ezra Bellon", title: "Program Manager" },
+  "usr-003": { name: "Maya Thompson", title: "Project Manager" },
+  "usr-004": { name: "Liam Patel", title: "Scrum Master" },
+  "usr-005": { name: "Sofia Nguyen", title: "Developer" },
+  "usr-006": { name: "Noah Carter", title: "Business Analyst / Product Owner" },
+  "usr-009": { name: "Chloe Bennett", title: "Android Engineer" },
+  "usr-010": { name: "Ethan Brooks", title: "Full-Stack Engineer" },
+  "usr-011": { name: "Olivia Martinez", title: "DevOps Engineer" },
+  "usr-012": { name: "Harper Singh", title: "QA Lead" },
+  "usr-013": { name: "Gabriel Kim", title: "iOS Engineer" },
+}
+
 // Base management overhead % (meetings, admin, ceremonies) before work items
 const MGMT_BASE: Record<string, number> = {
-  "usr-001": 52,  // Alex Rivera — Program Manager
-  "usr-003": 56,  // Sarah Mitchell — Project Manager
-  "usr-004": 42,  // Marcus Johnson — Scrum Master
+  "usr-001": 52,  // Ezra Bellon — Program Manager
+  "usr-003": 56,  // Maya Thompson — Project Manager
+  "usr-004": 42,  // Liam Patel — Scrum Master
 }
 
 const WEEK_OPTIONS = [4, 8, 12, 24] as const
@@ -49,40 +62,40 @@ const MOCK_ABSENCES: Absence[] = [
   { userId: "all", startDate: "2024-12-23", endDate: "2024-12-27", type: "holiday",    label: "Xmas" },
   { userId: "all", startDate: "2024-12-30", endDate: "2025-01-03", type: "holiday",    label: "New Year" },
 
-  // ── Priya Sharma (usr-005) ────────────────────────────────────────────────
+  // ── Sofia Nguyen (usr-005) ────────────────────────────────────────────────
   { userId: "usr-005", startDate: "2024-06-24", endDate: "2024-06-28", type: "pto",        label: "PTO" },
   { userId: "usr-005", startDate: "2024-09-09", endDate: "2024-09-13", type: "conference", label: "QCon" },
 
-  // ── James Okafor (usr-009) ────────────────────────────────────────────────
+  // ── Chloe Bennett (usr-009) ───────────────────────────────────────────────
   { userId: "usr-009", startDate: "2024-07-22", endDate: "2024-08-02", type: "vacation",   label: "Vacation" },
 
-  // ── Elena Vasquez (usr-010) ───────────────────────────────────────────────
+  // ── Ethan Brooks (usr-010) ────────────────────────────────────────────────
   { userId: "usr-010", startDate: "2024-08-19", endDate: "2024-08-23", type: "vacation",   label: "Vacation" },
   { userId: "usr-010", startDate: "2024-11-04", endDate: "2024-11-08", type: "pto",        label: "PTO" },
 
-  // ── Ravi Patel (usr-011) ─────────────────────────────────────────────────
+  // ── Olivia Martinez (usr-011) ─────────────────────────────────────────────
   { userId: "usr-011", startDate: "2024-10-14", endDate: "2024-10-18", type: "pto",        label: "PTO" },
   { userId: "usr-011", startDate: "2024-11-25", endDate: "2024-11-29", type: "conference", label: "AWS re:I" },
 
-  // ── Anya Kowalski (usr-012) ───────────────────────────────────────────────
+  // ── Harper Singh (usr-012) ────────────────────────────────────────────────
   { userId: "usr-012", startDate: "2024-07-29", endDate: "2024-08-02", type: "sick",       label: "Sick" },
   { userId: "usr-012", startDate: "2024-10-28", endDate: "2024-11-01", type: "vacation",   label: "Vacation" },
 
-  // ── Daniel Kim (usr-013) ─────────────────────────────────────────────────
+  // ── Gabriel Kim (usr-013) ────────────────────────────────────────────────
   { userId: "usr-013", startDate: "2024-07-08", endDate: "2024-07-12", type: "pto",        label: "PTO" },
   { userId: "usr-013", startDate: "2024-09-23", endDate: "2024-09-27", type: "pto",        label: "PTO" },
 
-  // ── Alex Rivera (usr-001) ────────────────────────────────────────────────
+  // ── Ezra Bellon (usr-001) ────────────────────────────────────────────────
   { userId: "usr-001", startDate: "2024-07-22", endDate: "2024-07-26", type: "conference", label: "PMI Conf" },
   { userId: "usr-001", startDate: "2024-10-07", endDate: "2024-10-11", type: "pto",        label: "PTO" },
 
-  // ── Sarah Mitchell (usr-003) ─────────────────────────────────────────────
+  // ── Maya Thompson (usr-003) ──────────────────────────────────────────────
   { userId: "usr-003", startDate: "2024-08-05", endDate: "2024-08-09", type: "pto",        label: "PTO" },
 
-  // ── Marcus Johnson (usr-004) ─────────────────────────────────────────────
+  // ── Liam Patel (usr-004) ────────────────────────────────────────────────
   { userId: "usr-004", startDate: "2024-09-02", endDate: "2024-09-06", type: "pto",        label: "PTO" },
 
-  // ── Tom Bradley (usr-006) ────────────────────────────────────────────────
+  // ── Noah Carter (usr-006) ────────────────────────────────────────────────
   { userId: "usr-006", startDate: "2024-09-16", endDate: "2024-09-27", type: "vacation",   label: "Vacation" },
 ]
 
@@ -199,7 +212,12 @@ export function ResourceHeatmap({ projectId }: { projectId: string }) {
     [projectItems, weeksToShow]  // eslint-disable-line react-hooks/exhaustive-deps
   )
 
-  const users = MOCK_USERS.filter((u) => TEAM_IDS.includes(u.id))
+  const users = MOCK_USERS
+    .filter((u) => TEAM_IDS.includes(u.id))
+    .map((u) => ({
+      ...u,
+      ...(TEAM_MEMBER_DISPLAY[u.id] ?? {}),
+    }))
 
   // Month header groupings
   const months      = eachMonthOfInterval({ start: weeks[0], end: weeks[weeks.length - 1] })
@@ -513,7 +531,7 @@ export function ResourceHeatmap({ projectId }: { projectId: string }) {
           </div>
           <div className="space-y-2">
             {risks.map((r) => {
-              const user      = MOCK_USERS.find((u) => u.id === r.id)!
+              const user      = users.find((u) => u.id === r.id)!
               const userTasks = projectItems.filter((i) => i.assigneeId === r.id && i.status !== "completed")
               const taskNames = userTasks.slice(0, 3).map((t) => t.title).join(", ")
               return (
